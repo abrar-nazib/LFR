@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #include <Servo.h>
+#include <EEPROM.h>
 
 int DEBUG = 0;      // Make it 0 in main run
 int MEMORY = 0;     // Memory not in use
@@ -61,9 +62,9 @@ double Vul = 0;
 double PIDvalue, RSpeed, LSpeed;
 double Parthokko = 0;
 double AgerVul = 0;
-double threshold[8] = {80, 80, 80, 80, 80, 80, 80, 80}; //Array for holding sensor threshold values
-double t1[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-double t2[8] = {1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024};
+int threshold[8]; //Array for holding sensor threshold values
+int t1[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+int t2[8] = {1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024};
 unsigned long int memory[200]; // Memory of the path
 int memory_length = 200;
 int sumation;
@@ -94,6 +95,8 @@ double search();
 void shift_right(int value);
 void detection();
 void configurePID();
+void save_threshold(int threshold[8]);
+void retrieve_threshold();
 
 //-----------------------------Starting point------------------
 void setup()
@@ -134,35 +137,27 @@ void setup()
   while (true)
   {
     lcd.clear();
-    lcd.setCursor(3, 0);
-    lcd.print("Calibrate?");
-    lcd.setCursor(3, 1);
-    lcd.print("btn4 = OK");
-    delay(100);
-    if (digitalRead(btn4) == LOW)
-      break;
-  }
-  lcd.clear();
-  lcd.setCursor(2, 0);
-  lcd.print("Calibrating...");
-  generateThreshold();
-  lcd.clear();
-  while (true)
-  {
-    Stop(10);
-    for (int threshold_iterator = 0; threshold_iterator < 4; threshold_iterator++)
+    lcd.setCursor(0, 0);
+    lcd.print("CALIBRATE<==>RUN");
+    lcd.setCursor(0, 1);
+    lcd.print("btn2");
+    lcd.setCursor(12, 1);
+    lcd.print("btn1");
+    delay(50);
+    if (digitalRead(btn2) == LOW)
     {
-      lcd.setCursor(threshold_iterator * 3, 0);
-      lcd.print((int)threshold[threshold_iterator] < 1000 ? threshold[threshold_iterator] : 999);
-      lcd.setCursor(threshold_iterator * 3, 1);
-      lcd.print((int)threshold[threshold_iterator + 4] < 1000 ? threshold[threshold_iterator + 4] : 999);
-    }
-    delay(10);
-    if (digitalRead(btn4) == LOW)
+      generateThreshold();
+      save_threshold(threshold);
       break;
+    }
+    else if (digitalRead(btn1) == LOW)
+    {
+      retrieve_threshold();
+      break;
+    }
   }
 }
-//------------------------------Main Loop--------------------
+//------------------------------Main Loop-----------------------------------------------------
 void loop()
 {
   readSensors();
@@ -181,7 +176,28 @@ void loop()
     configurePID();
   }
 }
-//------------------------------------------------------------------
+//--------------------------------------------------------------------------------------
+void save_threshold(int threshold[8])
+{
+  for (int threshold_iterator = 0; threshold_iterator < 8; threshold_iterator++)
+  {
+    byte first_half = B00000000;
+    byte second_half = B00000000;
+    first_half = (threshold[threshold_iterator] >> 8) | first_half;
+    second_half = (threshold[threshold_iterator] & B11111111) | second_half;
+    EEPROM.write(threshold_iterator * 2 + 1, first_half);
+    EEPROM.write(threshold_iterator * 2 + 2, second_half);
+  }
+}
+//---------------------------------------------------------------------------------------
+void retrieve_threshold()
+{
+  for (int threshold_iterator = 0; threshold_iterator < 8; threshold_iterator++)
+  {
+    threshold[threshold_iterator] = (EEPROM.read(threshold_iterator * 2 + 1) << 8) | (EEPROM.read(threshold_iterator * 2 + 2));
+  }
+}
+//-----------------------------------------------------------------------------------------
 void configurePID()
 {
   directions_iterator = 0;
@@ -250,8 +266,7 @@ void configurePID()
       break;
   }
 }
-
-//-------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
 void shift_right(int value)
 {
   memory[value] = memory[value - 1];
@@ -259,7 +274,7 @@ void shift_right(int value)
     return;
   shift_right(value - 1);
 }
-//-------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void readSensors()
 {
   /*
@@ -321,7 +336,9 @@ void generateBinary()
     }
     sumation += x[cx];
   }
+
   sensorData = 0;
+
   for (int cxx = 0; cxx < NumOfSensors; cxx++)
   {
     sensorData = (sensorData << 1) | x[cxx];
@@ -342,6 +359,10 @@ void generateBinary()
 //--------------------------------------------------------------------------------
 void generateThreshold()
 {
+  lcd.clear();
+  lcd.setCursor(2, 0);
+  lcd.print("Calibrating...");
+  delay(50);
   for (int th = 0; th < 300; th++)
   {
     Forward(1, 100);
@@ -357,6 +378,20 @@ void generateThreshold()
   for (int thr = 0; thr < NumOfSensors; thr++)
   {
     threshold[thr] = (t1[thr] + t2[thr]) / 2;
+  }
+  while (true)
+  {
+    Stop(10);
+    for (int threshold_iterator = 0; threshold_iterator < 4; threshold_iterator++)
+    {
+      lcd.setCursor(threshold_iterator * 3, 0);
+      lcd.print((int)threshold[threshold_iterator] < 1000 ? threshold[threshold_iterator] : 999);
+      lcd.setCursor(threshold_iterator * 3, 1);
+      lcd.print((int)threshold[threshold_iterator + 4] < 1000 ? threshold[threshold_iterator + 4] : 999);
+    }
+    delay(10);
+    if (digitalRead(btn4) == LOW)
+      break;
   }
 }
 //----------------------------------THE MAIN CALCULATION&EXECUTION------------------------------------------------
