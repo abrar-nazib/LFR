@@ -522,10 +522,8 @@ void Stop(double del)
 void BreakF()
 {
   Stop(20);
-  Backward(30, 240);
+  Backward(30, 250);
   Stop(20);
-  Backward(30, 160);
-  Stop(10);
 }
 //-----------------------------------------------------------------------------------------
 void BreakL()
