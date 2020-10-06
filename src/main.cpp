@@ -177,6 +177,7 @@ void loop()
   }
   if (directions_iterator > 3)
   {
+
     configurePID();
   }
 }
@@ -194,13 +195,20 @@ void configurePID()
       lcd.print("Const1");
       lcd.setCursor(5, 1);
       lcd.print(Const1);
+      delay(50);
       if (digitalRead(btn5) == LOW)
       {
-        Const3 = Const3 + 0.1;
+        Const1 = Const1 + 0.1;
+        lcd.setCursor(5, 1);
+        lcd.print(Const1);
+        delay(50);
       }
       else if (digitalRead(btn3) == LOW)
       {
-        Const3 = Const3 - 0.1;
+        Const1 = Const1 - 0.1;
+        lcd.setCursor(5, 1);
+        lcd.print(Const1);
+        delay(50);
       }
       if (digitalRead(btn1) == LOW || digitalRead(btn2) == LOW)
       {
@@ -216,13 +224,20 @@ void configurePID()
       lcd.print("Const3");
       lcd.setCursor(5, 1);
       lcd.print(Const3);
+      delay(50);
       if (digitalRead(btn5) == LOW)
       {
         Const3 = Const3 + 0.1;
+        lcd.setCursor(5, 1);
+        lcd.print(Const3);
+        delay(50);
       }
       else if (digitalRead(btn3) == LOW)
       {
         Const3 = Const3 - 0.1;
+        lcd.setCursor(5, 1);
+        lcd.print(Const3);
+        delay(50);
       }
       if (digitalRead(btn1) == LOW || digitalRead(btn2) == LOW)
       {
@@ -235,7 +250,7 @@ void configurePID()
       break;
   }
 }
-}
+
 //-------------------------------------------------------------------
 void shift_right(int value)
 {
@@ -524,9 +539,9 @@ void BreakL()
 //-----------------------------------------------------------------------------------------
 void BreakR()
 {
-  // Stop(20);
-  // Left(30, 230);
-  // Stop(20);
+  Stop(20);
+  Left(30, 230);
+  Stop(20);
   // Left(40, 200);
   // Stop(10);
 }
@@ -553,12 +568,12 @@ void Tright()
   BreakF();
   while (1)
   {
-    Right(5, 160);
+    Right(10, 250);
     readSensors();
     generateBinary();
     if (x[6] == 1 || x[7] == 1)
     {
-      Right(50, 100);
+      Right(20, 50);
       BreakR();
       break;
     }
