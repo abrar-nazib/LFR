@@ -10,6 +10,8 @@
 #include <LiquidCrystal_I2C.h>
 #include <Servo.h>
 #include <EEPROM.h>
+#include <Wire.h>
+#include <Adafruit_SSD1306.h>
 
 int DEBUG = 0;      // Make it 0 in main run
 int MEMORY = 0;     // Memory not in use
@@ -34,10 +36,12 @@ int MEMORY = 0;     // Memory not in use
 #define servo2_pin 9
 #define sda 20 // Important! cannot change this pin
 #define scl 21 // Important! cannot change this pin
-
+//-------------------- DISPLAY RELATED ------------------------------------------------
+#define OLED_RESET 4
+Adafruit_SSD1306 display(OLED_RESET);
+//--------------------------------------------------------------------
 Servo servo1;
 Servo servo2;
-LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 //-------------------- IR SENSOR RELATED VARIABLES-----------------------------------------
 boolean firstData[8]; /*to eliminate effect of noise*/
@@ -126,24 +130,26 @@ void setup()
 
   servo1.attach(servo1_pin);
   servo2.attach(servo2_pin);
-
-  lcd.init();
-  lcd.backlight();
-
+  //----------------------DISPLAY------------------
+  Wire.begin();
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.setTextColor(WHITE);
+  display.setTextSize(1);
+  //-------------------------------------------------
   for (int load_memory = 0; load_memory < memory_length; load_memory++)
   {
     memory[load_memory] = 0;
   }
   while (true)
   {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("CALIBRATE<==>RUN");
-    lcd.setCursor(0, 1);
-    lcd.print("btn2");
-    lcd.setCursor(12, 1);
-    lcd.print("btn1");
-    delay(50);
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("CALIBRATE  <==>  RUN");
+    display.setCursor(0, 10);
+    display.print("btn2");
+    display.setCursor(100, 10);
+    display.print("btn1");
+    display.display();
     if (digitalRead(btn2) == LOW)
     {
       generateThreshold();
@@ -160,21 +166,27 @@ void setup()
 //------------------------------Main Loop-----------------------------------------------------
 void loop()
 {
+  double time1 = micros();
   readSensors();
   generateBinary();
   deviation();
   PIDval();
   doura();
-  if (sumation > 4)
-  {
-    detection();
-    directions_iterator++;
-  }
-  if (directions_iterator > 3)
-  {
+  // if (sumation > 4)
+  // {
+  //   detection();
+  //   directions_iterator++;
+  // }
+  // if (directions_iterator > 3)
+  // {
 
-    configurePID();
-  }
+  //   configurePID();
+  // }
+  double time2 = micros() - time1;
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print(time2);
+  Stop(5000);
 }
 //--------------------------------------------------------------------------------------
 void save_threshold(int threshold[8])
@@ -206,25 +218,25 @@ void configurePID()
   {
     if (constvalue == 1)
     {
-      lcd.clear();
-      lcd.setCursor(4, 0);
-      lcd.print("Const1");
-      lcd.setCursor(5, 1);
-      lcd.print(Const1);
-      delay(50);
+      display.clearDisplay();
+      display.setCursor(4, 0);
+      display.print("Const1");
+      display.setCursor(5, 10);
+      display.print(Const1);
+      display.display();
       if (digitalRead(btn5) == LOW)
       {
         Const1 = Const1 + 0.1;
-        lcd.setCursor(5, 1);
-        lcd.print(Const1);
-        delay(50);
+        display.setCursor(5, 10);
+        display.print(Const1);
+        display.display();
       }
       else if (digitalRead(btn3) == LOW)
       {
         Const1 = Const1 - 0.1;
-        lcd.setCursor(5, 1);
-        lcd.print(Const1);
-        delay(50);
+        display.setCursor(5, 10);
+        display.print(Const1);
+        display.display();
       }
       if (digitalRead(btn1) == LOW || digitalRead(btn2) == LOW)
       {
@@ -235,25 +247,25 @@ void configurePID()
     }
     else if (constvalue == 0)
     {
-      lcd.clear();
-      lcd.setCursor(4, 0);
-      lcd.print("Const3");
-      lcd.setCursor(5, 1);
-      lcd.print(Const3);
-      delay(50);
+      display.clearDisplay();
+      display.setCursor(4, 0);
+      display.print("Const3");
+      display.setCursor(5, 10);
+      display.print(Const3);
+      display.display();
       if (digitalRead(btn5) == LOW)
       {
         Const3 = Const3 + 0.1;
-        lcd.setCursor(5, 1);
-        lcd.print(Const3);
-        delay(50);
+        display.setCursor(5, 10);
+        display.print(Const3);
+        display.display();
       }
       else if (digitalRead(btn3) == LOW)
       {
         Const3 = Const3 - 0.1;
-        lcd.setCursor(5, 1);
-        lcd.print(Const3);
-        delay(50);
+        display.setCursor(5, 10);
+        display.print(Const3);
+        display.display();
       }
       if (digitalRead(btn1) == LOW || digitalRead(btn2) == LOW)
       {
@@ -321,7 +333,7 @@ void readSensors()
 void generateBinary()
 {
   if (DEBUG)
-    lcd.clear();
+    display.clearDisplay();
 
   sumation = 0;
   for (int cx = 0; cx < NumOfSensors; cx++)
@@ -344,8 +356,9 @@ void generateBinary()
     sensorData = (sensorData << 1) | x[cxx];
     if (DEBUG)
     {
-      lcd.setCursor(cxx + 4, 0);
-      lcd.print(x[cxx]);
+      display.setCursor(cxx + 4, 0);
+      display.print(x[cxx]);
+      display.display();
     }
   }
   if (MEMORY)
@@ -354,15 +367,15 @@ void generateBinary()
     memory[0] = sensorData;
   }
   if (DEBUG)
-    lcd.clear();
+    display.clearDisplay();
 }
 //--------------------------------------------------------------------------------
 void generateThreshold()
 {
-  lcd.clear();
-  lcd.setCursor(2, 0);
-  lcd.print("Calibrating...");
-  delay(50);
+  display.clearDisplay();
+  display.setCursor(2, 0);
+  display.print("Calibrating...");
+  display.display();
   for (int th = 0; th < 300; th++)
   {
     Forward(1, 100);
@@ -384,10 +397,11 @@ void generateThreshold()
     Stop(10);
     for (int threshold_iterator = 0; threshold_iterator < 4; threshold_iterator++)
     {
-      lcd.setCursor(threshold_iterator * 3, 0);
-      lcd.print((int)threshold[threshold_iterator] < 1000 ? threshold[threshold_iterator] : 999);
-      lcd.setCursor(threshold_iterator * 3, 1);
-      lcd.print((int)threshold[threshold_iterator + 4] < 1000 ? threshold[threshold_iterator + 4] : 999);
+      display.setCursor(threshold_iterator * 3, 0);
+      display.print((int)threshold[threshold_iterator] < 1000 ? threshold[threshold_iterator] : 999);
+      display.setCursor(threshold_iterator * 3, 10);
+      display.print((int)threshold[threshold_iterator + 4] < 1000 ? threshold[threshold_iterator + 4] : 999);
+      display.display();
     }
     delay(10);
     if (digitalRead(btn4) == LOW)
@@ -470,26 +484,28 @@ void PIDval()
 //------------------------------------------------------------------------------------
 void doura()
 {
-  if (Vul > 0)
-  {
-    RSpeed = motorspeed - PIDvalue;
-    LSpeed = motorspeed;
-  }
-  else if (Vul < 0)
-  {
-    LSpeed = motorspeed + PIDvalue;
-    RSpeed = motorspeed;
-  }
-  else
-  {
-    RSpeed = motorspeed;
-    LSpeed = motorspeed;
-  }
+  RSpeed = motorspeed - PIDvalue;
+  LSpeed = motorspeed + PIDvalue;
+
+  // else if (Vul < 0)
+  // {
+  //   LSpeed = motorspeed + PIDvalue;
+  //   RSpeed = motorspeed;
+  // }
+  // else
+  // {
+  //   RSpeed = motorspeed;
+  //   LSpeed = motorspeed;
+  // }
 
   if (RSpeed < 5)
     RSpeed = 5;
   if (LSpeed < 5)
     LSpeed = 5;
+  if (RSpeed > 254)
+    RSpeed = 254;
+  if (LSpeed > 254)
+    LSpeed = 254;
 
   analogWrite(pwR, RSpeed);
   analogWrite(pwL, LSpeed);
@@ -643,8 +659,8 @@ void pick_object()
   BreakF();
   for (int servo_angle = 0; servo_angle < 90; servo_angle++)
   {
-    servo1.write(servo_angle);
-    servo2.write(servo_angle);
+    //servo1.write(servo_angle);
+    //servo2.write(servo_angle);
     delay(10);
   }
 }
@@ -654,8 +670,8 @@ void release_object()
   BreakF();
   for (int servo_angle = 90; servo_angle > 0; servo_angle--)
   {
-    servo1.write(servo_angle);
-    servo2.write(servo_angle);
+    //servo1.write(servo_angle);
+    //servo2.write(servo_angle);
     delay(10);
   }
   while (search() < 8)
@@ -697,8 +713,9 @@ void detection()
   //---------------------------------------------------------------
   if (MEMORY)
   {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(memory_value);
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print(memory_value);
+    display.display();
   }
 }
