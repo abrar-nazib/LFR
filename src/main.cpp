@@ -56,11 +56,11 @@ byte sensorData;
 
 char directions[100]; // memory of the track to follow -> have to be defined according to the track
 unsigned int directions_iterator = 0;
-double Const1 = 14;
+double Const1 = 12;
 double Const2 = 0;
-double Const3 = 6;
+double Const3 = 4;
 double Shomakolon = 0;
-double motorspeed = 220;
+double motorspeed = 130;
 double velocity = 0;
 double Vul = 0;
 double PIDvalue, RSpeed, LSpeed;
@@ -166,27 +166,11 @@ void setup()
 //------------------------------Main Loop-----------------------------------------------------
 void loop()
 {
-  double time1 = micros();
   readSensors();
   generateBinary();
   deviation();
   PIDval();
   doura();
-  // if (sumation > 4)
-  // {
-  //   detection();
-  //   directions_iterator++;
-  // }
-  // if (directions_iterator > 3)
-  // {
-
-  //   configurePID();
-  // }
-  double time2 = micros() - time1;
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print(time2);
-  Stop(5000);
 }
 //--------------------------------------------------------------------------------------
 void save_threshold(int threshold[8])
