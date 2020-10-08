@@ -616,7 +616,14 @@ void Tright()
     generateBinary();
     if (x[6] == 1 || x[7] == 1)
     {
-      Right(20, 50);
+      while (true)
+      {
+        Right(10, 100);
+        readSensors();
+        generateBinary();
+        if (x[3] == 1 || x[4] == 1)
+          break;
+      }
       BreakR();
       break;
     }
