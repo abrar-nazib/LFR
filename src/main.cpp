@@ -171,6 +171,16 @@ void loop()
   deviation();
   PIDval();
   doura();
+  if (sumation > 4)
+  {
+    detection();
+    directions_iterator++;
+  }
+  if (directions_iterator > 3)
+  {
+
+    configurePID();
+  }
 }
 //--------------------------------------------------------------------------------------
 void save_threshold(int threshold[8])
