@@ -54,13 +54,13 @@ unsigned int MaxWaitTime = 1024;
 byte sensorData;
 //---------------------------------------------------------------------------------------------
 
-char directions[500] = {'L', 'R', 'F', 'R', 'L', 'R', 'L'}; // memory of the track to follow -> have to be defined according to the track
+char directions[500][2] = {'LN', 'RN', 'FN', 'RN', 'rX', 'lN', 'RN', 'LN'}; // memory of the track to follow -> have to be defined according to the track
 unsigned int directions_iterator = 0;
 double Const1 = 11.6;
 double Const2 = 0;
 double Const3 = 4.2;
 double Shomakolon = 0;
-double motorspeed = 250;
+double motorspeed = 180 - (object * 20);
 double velocity = 0;
 double Vul = 0;
 double PIDvalue, RSpeed, LSpeed;
@@ -80,6 +80,10 @@ int rs_init = 160;
 int ls_init = 80;
 int rs = 105;
 int ls = 75;
+int object = 0;
+int big_obj = 0;
+int small_obj = 0;
+int srch = 0;
 //----------------------Functions used in this code-------------------------------
 void readSensors();
 void generateBinary();
@@ -178,9 +182,16 @@ void loop()
   deviation();
   PIDval();
   doura();
-  if (sumation > 4)
+  if (sumation > 4 || sumation == 0)
     detection();
-  //configureServo();
+  if (srch == 1)
+  {
+    double distance = search();
+    if (distance > 5 && distance < 15)
+    {
+      pick_object();
+    }
+  }
 }
 //--------------------------------------------------------------------------------------
 void save_threshold(int threshold[8])
@@ -718,8 +729,6 @@ double search()
 
   duration = pulseIn(echoPin, HIGH, 1700);
   CM = (duration / 58.82);
-  // if (CM > 10 && CM < 25)
-  //   pick_object();
   return CM;
 }
 //-------------------------------------------------------------------------------------------
@@ -728,13 +737,24 @@ void pick_object()
   BreakF();
   while (search() > 5)
   {
-    Forward(10, 50);
+    Forward(10, 80);
   }
-  BreakF();
+  //assumption
+  Stop(100);
   for (int servo_angle = 0; servo_angle < 90; servo_angle++)
   {
-    //rServo.write(servo_angle);
-    //lServo.write(servo_angle);
+    if (big_obj)
+    {
+      //rServo.write(servo_angle);
+      //lServo.write(servo_angle);
+      big_obj = 0;
+    }
+    else if (small_obj)
+    {
+      //small object grabbing code
+      small_obj = 0;
+    }
+
     delay(10);
   }
 }
@@ -778,22 +798,63 @@ void detection()
     }
   }
 
-  digitalWrite(led1, LOW);
-  digitalWrite(led2, LOW);
-  digitalWrite(led3, LOW);
   /*
   *Desicion making code will go here -> depends on on field values
   * 
   */
 
-  // if (directions[directions_iterator] == 'L')
-  //   Tleft();
-  // else if (directions[directions_iterator] == 'R')
-  //   Tright();
-  // else if (directions[directions_iterator] == 'F')
-  //   Forward(10, 10);
-  // directions_iterator++;
-  Tright();
+  if (directions[directions_iterator][0] == 'L')
+  {
+    Tleft();
+    object = 0;
+  }
+  else if (directions[directions_iterator][0] == 'R')
+  {
+    Tright();
+    object = 0;
+  }
+  else if (directions[directions_iterator][0] == 'F')
+  {
+    Forward(10, 10);
+    object = 0;
+  }
+  else if (directions[directions_iterator][0] == 'r')
+  {
+    Tright();
+    object = 1;
+  }
+  else if (directions[directions_iterator][0] == 'f')
+  {
+    Forward(10, 10);
+    object = 1;
+  }
+  else if (directions[directions_iterator][0] == 'l')
+  {
+    Tleft();
+    object = 1;
+  }
+
+  if (directions[directions_iterator][1] == 'N')
+  {
+    srch = 0;
+  }
+
+  if (directions[directions_iterator][1] == 'X')
+  {
+    srch = 1;
+    big_obj = 1;
+  }
+  if (directions[directions_iterator][1] == 'x')
+  {
+    srch = 1;
+    small_obj = 1;
+  }
+
+  directions_iterator++;
+
+  digitalWrite(led1, LOW);
+  digitalWrite(led2, LOW);
+  digitalWrite(led3, LOW);
   //---------------------------------------------------------------
   if (MEMORY)
   {
