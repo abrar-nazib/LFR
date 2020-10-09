@@ -1,8 +1,8 @@
 /*
  *  Code for robot gathering contest
  *  
- *
- *
+ *ideal--- left 15 right 160
+ *Big object -- R-105 L-75
  *
 */
 
@@ -18,10 +18,10 @@ int MEMORY = 0;     // Memory not in use
 #define trigPin A8  // Must connect to an analog pin
 #define echoPin A10 // Must connect to an analog pin
 #define STBY 5
-#define rMin1 6
-#define rMin2 7
-#define lMin1 3
-#define lMin2 4
+#define rMin1 7
+#define rMin2 6
+#define lMin1 4
+#define lMin2 3
 #define pwL 2
 #define pwR 12
 #define btn1 23
@@ -32,21 +32,21 @@ int MEMORY = 0;     // Memory not in use
 #define led1 24
 #define led2 26
 #define led3 32
-#define servo1_pin 8
-#define servo2_pin 9
+#define rServo_pin 8
+#define lServo_pin 9
 #define sda 20 // Important! cannot change this pin
 #define scl 21 // Important! cannot change this pin
 //-------------------- DISPLAY RELATED ------------------------------------------------
 #define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
 //--------------------------------------------------------------------
-Servo servo1;
-Servo servo2;
+Servo rServo;
+Servo lServo;
 
 //-------------------- IR SENSOR RELATED VARIABLES-----------------------------------------
 boolean firstData[8]; /*to eliminate effect of noise*/
 int v = 0;
-unsigned int sensor[8];                              /*sensor readings are saved here*/
+int sensor[8];                                       /*sensor readings are saved here*/
 int sensorPin[8] = {A7, A6, A5, A4, A3, A2, A1, A0}; /*arduino pins to read sensors*/
 byte NumOfSensors = 8;
 byte i; /*just to run for loop!!*/
@@ -54,13 +54,13 @@ unsigned int MaxWaitTime = 1024;
 byte sensorData;
 //---------------------------------------------------------------------------------------------
 
-char directions[100]; // memory of the track to follow -> have to be defined according to the track
+char directions[500] = {'L', 'R', 'F', 'R', 'L', 'R', 'L'}; // memory of the track to follow -> have to be defined according to the track
 unsigned int directions_iterator = 0;
-double Const1 = 12;
+double Const1 = 11.6;
 double Const2 = 0;
-double Const3 = 4;
+double Const3 = 4.2;
 double Shomakolon = 0;
-double motorspeed = 130;
+double motorspeed = 250;
 double velocity = 0;
 double Vul = 0;
 double PIDvalue, RSpeed, LSpeed;
@@ -69,13 +69,17 @@ double AgerVul = 0;
 int threshold[8]; //Array for holding sensor threshold values
 int t1[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 int t2[8] = {1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024};
-unsigned long int memory[200]; // Memory of the path
-int memory_length = 200;
+unsigned long int memory[50]; // Memory of the path
+int memory_length = 50;
 int sumation;
 int ct[8] = {-4, -3, -2, -1, 1, 2, 3, 4};
 int x[8];
 int reading;
 int sm = 0;
+int rs_init = 160;
+int ls_init = 80;
+int rs = 105;
+int ls = 75;
 //----------------------Functions used in this code-------------------------------
 void readSensors();
 void generateBinary();
@@ -101,6 +105,7 @@ void detection();
 void configurePID();
 void save_threshold(int threshold[8]);
 void retrieve_threshold();
+void configureServo();
 
 //-----------------------------Starting point------------------
 void setup()
@@ -128,8 +133,8 @@ void setup()
   pinMode(echoPin, INPUT);
   digitalWrite(STBY, HIGH);
 
-  servo1.attach(servo1_pin);
-  servo2.attach(servo2_pin);
+  rServo.attach(rServo_pin);
+  lServo.attach(lServo_pin);
   //----------------------DISPLAY------------------
   Wire.begin();
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -140,6 +145,8 @@ void setup()
   {
     memory[load_memory] = 0;
   }
+  lServo.write(ls);
+  rServo.write(rs);
   while (true)
   {
     display.clearDisplay();
@@ -172,15 +179,8 @@ void loop()
   PIDval();
   doura();
   if (sumation > 4)
-  {
     detection();
-    directions_iterator++;
-  }
-  if (directions_iterator > 3)
-  {
-
-    configurePID();
-  }
+  //configureServo();
 }
 //--------------------------------------------------------------------------------------
 void save_threshold(int threshold[8])
@@ -272,6 +272,78 @@ void configurePID()
       break;
   }
 }
+
+void configureServo()
+{
+  int constvalue = 1;
+  while (true)
+  {
+
+    if (constvalue == 1)
+    {
+      display.clearDisplay();
+      display.setCursor(4, 0);
+      display.print("Rservo");
+      display.setCursor(5, 10);
+      display.print(rs);
+      display.display();
+      if (digitalRead(btn5) == LOW)
+      {
+        rs++;
+        display.setCursor(5, 10);
+        display.print(rs);
+        display.display();
+      }
+      else if (digitalRead(btn3) == LOW)
+      {
+        rs--;
+        display.setCursor(5, 10);
+        display.print(rs);
+        display.display();
+      }
+      if (digitalRead(btn1) == LOW || digitalRead(btn2) == LOW)
+      {
+        constvalue = !constvalue;
+      }
+      if (digitalRead(btn4) == LOW)
+        break;
+    }
+    else if (constvalue == 0)
+    {
+      display.clearDisplay();
+      display.setCursor(4, 0);
+      display.print("LServo");
+      display.setCursor(5, 10);
+      display.print(ls);
+      display.display();
+      if (digitalRead(btn5) == LOW)
+      {
+        ls++;
+        display.setCursor(5, 10);
+        display.print(ls);
+        display.display();
+      }
+      else if (digitalRead(btn3) == LOW)
+      {
+        ls--;
+        display.setCursor(5, 10);
+        display.print(ls);
+        display.display();
+      }
+      if (digitalRead(btn1) == LOW || digitalRead(btn2) == LOW)
+      {
+        constvalue = !constvalue;
+      }
+      if (digitalRead(btn4) == LOW)
+        break;
+    }
+    if (digitalRead(btn4) == LOW)
+      break;
+    rServo.write(rs);
+    lServo.write(ls);
+  }
+}
+
 //-----------------------------------------------------------------------------------------
 void shift_right(int value)
 {
@@ -386,17 +458,9 @@ void generateThreshold()
   {
     threshold[thr] = (t1[thr] + t2[thr]) / 2;
   }
+  Stop(10);
   while (true)
   {
-    Stop(10);
-    for (int threshold_iterator = 0; threshold_iterator < 4; threshold_iterator++)
-    {
-      display.setCursor(threshold_iterator * 3, 0);
-      display.print((int)threshold[threshold_iterator] < 1000 ? threshold[threshold_iterator] : 999);
-      display.setCursor(threshold_iterator * 3, 10);
-      display.print((int)threshold[threshold_iterator + 4] < 1000 ? threshold[threshold_iterator + 4] : 999);
-      display.display();
-    }
     delay(10);
     if (digitalRead(btn4) == LOW)
       break;
@@ -478,28 +542,26 @@ void PIDval()
 //------------------------------------------------------------------------------------
 void doura()
 {
-  RSpeed = motorspeed - PIDvalue;
-  LSpeed = motorspeed + PIDvalue;
-
-  // else if (Vul < 0)
-  // {
-  //   LSpeed = motorspeed + PIDvalue;
-  //   RSpeed = motorspeed;
-  // }
-  // else
-  // {
-  //   RSpeed = motorspeed;
-  //   LSpeed = motorspeed;
-  // }
+  if (Vul > 0)
+  {
+    RSpeed = motorspeed - PIDvalue;
+    LSpeed = motorspeed;
+  }
+  else if (Vul < 0)
+  {
+    LSpeed = motorspeed + PIDvalue;
+    RSpeed = motorspeed;
+  }
+  else
+  {
+    RSpeed = motorspeed;
+    LSpeed = motorspeed;
+  }
 
   if (RSpeed < 5)
     RSpeed = 5;
   if (LSpeed < 5)
     LSpeed = 5;
-  if (RSpeed > 254)
-    RSpeed = 254;
-  if (LSpeed > 254)
-    LSpeed = 254;
 
   analogWrite(pwR, RSpeed);
   analogWrite(pwL, LSpeed);
@@ -566,25 +628,25 @@ void Stop(double del)
 //---------------------------------Breaking functions--------------------------------------
 void BreakF()
 {
-  Stop(20);
-  Backward(30, 250);
-  Stop(20);
+  Stop(10);
+  Backward(80, 250);
+  Stop(10);
 }
 //-----------------------------------------------------------------------------------------
 void BreakL()
 {
-  Stop(20);
-  Right(30, 230);
-  Stop(20);
+  Stop(10);
+  Right(50, 250);
+  Stop(10);
   // Right(40, 200);
   // Stop(10);
 }
 //-----------------------------------------------------------------------------------------
 void BreakR()
 {
-  Stop(20);
-  Left(30, 230);
-  Stop(20);
+  Stop(10);
+  Left(50, 250);
+  Stop(10);
   // Left(40, 200);
   // Stop(10);
 }
@@ -594,13 +656,22 @@ void Tleft()
   BreakF();
   while (1)
   {
-    Left(5, 160);
+    Left(10, 240);
     readSensors();
     generateBinary();
     if (x[0] == 1 || x[1] == 1)
     {
-      Left(50, 100);
-      BreakL();
+      while (true)
+      {
+        Left(10, 50);
+        readSensors();
+        generateBinary();
+        if (x[3] == 1 || x[4] == 1)
+        {
+          BreakL();
+          break;
+        }
+      }
       break;
     }
   }
@@ -611,20 +682,22 @@ void Tright()
   BreakF();
   while (1)
   {
-    Right(10, 250);
+    Right(10, 240);
     readSensors();
     generateBinary();
     if (x[6] == 1 || x[7] == 1)
     {
       while (true)
       {
-        Right(10, 100);
+        Right(10, 50);
         readSensors();
         generateBinary();
         if (x[3] == 1 || x[4] == 1)
+        {
+          BreakR();
           break;
+        }
       }
-      BreakR();
       break;
     }
   }
@@ -645,8 +718,8 @@ double search()
 
   duration = pulseIn(echoPin, HIGH, 1700);
   CM = (duration / 58.82);
-  if (CM > 10 && CM < 25)
-    pick_object();
+  // if (CM > 10 && CM < 25)
+  //   pick_object();
   return CM;
 }
 //-------------------------------------------------------------------------------------------
@@ -660,8 +733,8 @@ void pick_object()
   BreakF();
   for (int servo_angle = 0; servo_angle < 90; servo_angle++)
   {
-    //servo1.write(servo_angle);
-    //servo2.write(servo_angle);
+    //rServo.write(servo_angle);
+    //lServo.write(servo_angle);
     delay(10);
   }
 }
@@ -671,8 +744,8 @@ void release_object()
   BreakF();
   for (int servo_angle = 90; servo_angle > 0; servo_angle--)
   {
-    //servo1.write(servo_angle);
-    //servo2.write(servo_angle);
+    //rServo.write(servo_angle);
+    //lServo.write(servo_angle);
     delay(10);
   }
   while (search() < 8)
@@ -686,7 +759,7 @@ void detection()
   digitalWrite(led1, HIGH);
   digitalWrite(led2, HIGH);
   digitalWrite(led3, HIGH);
-  for (int detect = 0; detect < 50; detect++)
+  for (int detect = 0; detect < 20; detect++)
   {
     readSensors();
     generateBinary();
@@ -694,6 +767,7 @@ void detection()
     PIDval();
     doura();
   }
+
   unsigned long int memory_value = 0;
   if (MEMORY)
   {
@@ -703,6 +777,7 @@ void detection()
       memory_value = memory_value + memory[memory_iterator];
     }
   }
+
   digitalWrite(led1, LOW);
   digitalWrite(led2, LOW);
   digitalWrite(led3, LOW);
@@ -710,13 +785,27 @@ void detection()
   *Desicion making code will go here -> depends on on field values
   * 
   */
+
+  // if (directions[directions_iterator] == 'L')
+  //   Tleft();
+  // else if (directions[directions_iterator] == 'R')
+  //   Tright();
+  // else if (directions[directions_iterator] == 'F')
+  //   Forward(10, 10);
+  // directions_iterator++;
   Tright();
   //---------------------------------------------------------------
   if (MEMORY)
   {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.print(memory_value);
-    display.display();
+
+    while (true)
+    {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.print(memory_value);
+      display.display();
+      if (digitalRead(btn4) == LOW)
+        break;
+    }
   }
 }
